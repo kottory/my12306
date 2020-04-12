@@ -158,6 +158,7 @@ class Application(Frame):
             self.infoTree.insert('', 'end', values=(
                 shift, total - bought, total))
 
+        self.scrollBar.config(command=self.infoTree.yview)
         self.infoTree.pack()
 
     @on_load
@@ -183,6 +184,7 @@ class Application(Frame):
                 self.infoTree.insert(
                     '', 'end', values=(shift['id'], stat, shift['all'] - bought, shift['all']))
 
+        self.scrollBar.config(command=self.infoTree.yview)
         self.infoTree.pack()
 
     @on_load
@@ -191,6 +193,7 @@ class Application(Frame):
         self.infoTree.forget()
         self.infoTree = self.boughtInfo
 
+        self.scrollBar.config(command=self.infoTree.yview)
         self.infoTree.pack()
 
     @on_load
@@ -278,8 +281,11 @@ class Application(Frame):
             self, textvariable=self.displayText, font=self.bodyfont)
         self.displayLabel.pack()
 
+        self.scrollBar = Scrollbar(self)
+        self.scrollBar.pack(side='right', fill='y')
+
         self.boughtInfo = ttk.Treeview(
-            self, columns=['1', '2', '3', '4', '5'], show='headings')
+            self, columns=['1', '2', '3', '4', '5'], show='headings', yscrollcommand=self.scrollBar.set)
         self.boughtInfo.heading('1', text="订单号")
         self.boughtInfo.heading('2', text="车次")
         self.boughtInfo.heading('3', text="出发站")
@@ -287,13 +293,13 @@ class Application(Frame):
         self.boughtInfo.heading('5', text="已购票数")
 
         self.infoByStation = ttk.Treeview(
-            self, columns=['1', '2', '3'], show='headings')
+            self, columns=['1', '2', '3'], show='headings', yscrollcommand=self.scrollBar.set)
         self.infoByStation.heading('1', text="车次")
         self.infoByStation.heading('2', text="剩余票数")
         self.infoByStation.heading('3', text="总票数")
 
         self.infoByShift = ttk.Treeview(
-            self, columns=['1', '2', '3', '4'], show='headings')
+            self, columns=['1', '2', '3', '4'], show='headings', yscrollcommand=self.scrollBar.set)
         self.infoByShift.heading('1', text="车次")
         self.infoByShift.heading('2', text="车站")
         self.infoByShift.heading('3', text="剩余票数")
@@ -301,6 +307,7 @@ class Application(Frame):
 
         self.infoTree = self.boughtInfo
         self.infoTree.pack()
+        self.scrollBar.config(command=self.infoTree.yview)
 
     def createStatusBar(self):
         self.statusText = StringVar()
