@@ -1,0 +1,7 @@
+.vscode/**
+img/**
+sample/**
+data/**
+dist/**
+build/**
+*/__pycache__
