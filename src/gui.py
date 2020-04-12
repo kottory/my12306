@@ -49,6 +49,7 @@ class AskShiftIdWindow(Toplevel):
     def __init__(self, parent=None):
         super().__init__()
         self.parent = parent
+        self.resizable(0, 0)
         self.createWidgets()
 
 
@@ -77,6 +78,7 @@ class AskStationWindow(Toplevel):
     def __init__(self, parent=None):
         super().__init__()
         self.parent = parent
+        self.resizable(0, 0)
         self.createWidgets()
 
 
@@ -120,6 +122,7 @@ class AskOrderWindow(Toplevel):
     def __init__(self, parent=None, sbtl=None):
         super().__init__()
         self.parent = parent
+        self.resizable(0, 0)
         self.sbtl = sbtl
         self.createWidgets()
 
@@ -193,6 +196,13 @@ class Application(Frame):
         self.displayText.set('我的订单')
         self.infoTree.forget()
         self.infoTree = self.boughtInfo
+
+        children = self.infoTree.get_children()
+        for item in children:
+            self.infoTree.delete(item)
+        
+        for item in self.info.tickets.values():
+            self.infoTree.insert('', 'end', values=(item['id'], item['shiftId'], item['start'], item['end'], item['amount']))
 
         self.scrollBar.config(command=self.infoTree.yview)
         self.infoTree.pack()
@@ -277,7 +287,6 @@ class Application(Frame):
 
     def createTreeView(self):
         self.displayText = StringVar()
-        self.displayText.set('我的订单')
         self.displayLabel = Label(
             self, textvariable=self.displayText, font=self.bodyfont)
         self.displayLabel.pack()
@@ -308,7 +317,7 @@ class Application(Frame):
 
         self.infoTree = self.boughtInfo
         self.infoTree.pack()
-        self.scrollBar.config(command=self.infoTree.yview)
+        self.to_bought_info()
 
     def createStatusBar(self):
         self.statusText = StringVar()
@@ -320,8 +329,8 @@ class Application(Frame):
     def createWidgets(self):
         self.createFonts()
         self.createMenu()
-        self.createTreeView()
         self.createStatusBar()
+        self.createTreeView()
 
 
 if __name__ == "__main__":

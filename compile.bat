@@ -1,0 +1,1 @@
+pyinstaller main.py -w -i img/favicon.ico
