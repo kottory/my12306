@@ -36,6 +36,8 @@ class Info:
                 self.tickets = json.load(f)
 
     def save(self):
+        if not os.path.isdir('data'):
+            os.mkdir('data')
         with open(os.path.join(self.dataDirname, 'shift.json'), 'w') as f:
             json.dump(self.shifts, f)
         with open(os.path.join(self.dataDirname, 'ticket.json'), 'w') as f:
