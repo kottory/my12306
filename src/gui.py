@@ -129,6 +129,7 @@ class Application(Frame):
         hi_dpi()
         Frame.__init__(self, master)
         self.pack()
+        self.master.resizable(0, 0)
         self.info = info
         self.createWidgets()
         self.load()
