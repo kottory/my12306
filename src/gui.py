@@ -127,6 +127,29 @@ class AskOrderWindow(Toplevel):
         self.createWidgets()
 
 
+class AskRefundWindow(Toplevel):
+    def ok(self):
+        self.parent.refundId = self.opt.get()
+        self.destroy()
+
+    def createWidgets(self):
+        self.text = Label(self, text='请选择订单号')
+        self.text.pack()
+
+        self.opt = ttk.Combobox(self, values=self.parent.info.all_ticket_id())
+        self.opt.current(0)
+        self.opt.pack()
+
+        self.quitButton = Button(self, text='确定', command=self.ok)
+        self.quitButton.pack()
+
+    def __init__(self, parent=None):
+        super().__init__()
+        self.parent = parent
+        self.resizable(0, 0)
+        self.createWidgets()
+
+
 class Application(Frame):
     def __init__(self, info=None, master=None):
         hi_dpi()
@@ -200,9 +223,10 @@ class Application(Frame):
         children = self.infoTree.get_children()
         for item in children:
             self.infoTree.delete(item)
-        
+
         for item in self.info.tickets.values():
-            self.infoTree.insert('', 'end', values=(item['id'], item['shiftId'], item['start'], item['end'], item['amount']))
+            self.infoTree.insert('', 'end', values=(
+                item['id'], item['shiftId'], item['start'], item['end'], item['amount']))
 
         self.scrollBar.config(command=self.infoTree.yview)
         self.infoTree.pack()
@@ -241,7 +265,6 @@ class Application(Frame):
             self.info.del_shift(self.selectedId)
             self.to_bought_info()
 
-    # TODO
     def buy_ticket(self):
         self.to_info_by_station()
         self.boughtId = None
@@ -252,7 +275,20 @@ class Application(Frame):
             self.wait_window(popup)
         else:
             messagebox.showwarning('错误', '区间内无车次!')
-        self.info.buy_ticket(self.boughtId, self.startStation, self.endStation, self.boughtAmount)
+        if self.boughtId:
+            self.info.buy_ticket(
+                self.boughtId, self.startStation, self.endStation, self.boughtAmount)
+        self.to_bought_info()
+
+    def refund(self):
+        self.to_bought_info()
+        self.refundId = None
+        if self.info.tickets:
+            popup = AskRefundWindow(self)
+            self.wait_window(popup)
+        else:
+            messagebox.showwarning('错误', '无订单!')
+        self.info.refund(self.refundId)
         self.to_bought_info()
 
     def createFonts(self):
@@ -278,7 +314,7 @@ class Application(Frame):
         findMenu = Menu(self.menubar, tearoff=0)
         findMenu.add_command(label="查看订单", command=self.to_bought_info)
         findMenu.add_command(label="购票", command=self.buy_ticket)
-        findMenu.add_command(label="退票")
+        findMenu.add_command(label="退票", command=self.refund)
 
         self.menubar.add_cascade(label='文件', menu=fileMenu)
         self.menubar.add_cascade(label='显示', menu=infoMenu)

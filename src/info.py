@@ -80,9 +80,9 @@ class Info:
 
     def new_id(self):
         from random import randint
-        ret = randint(1000000, 9999999)
+        ret = str(randint(1000000, 9999999))
         while ret in self.tickets.keys():
-            ret = randint(1000000, 9999999)
+            ret = str(randint(1000000, 9999999))
         return ret
 
     def buy_ticket(self, bid, A, B, num):
@@ -96,12 +96,29 @@ class Info:
 
         nid = self.new_id()
         self.tickets[nid] = {
-            "id" : nid,
-            "shiftId" : bid,
-            "start" : A,
-            "end" : B,
-            "amount" : num
+            "id": nid,
+            "shiftId": bid,
+            "start": A,
+            "end": B,
+            "amount": num
         }
+
+    def all_ticket_id(self):
+        return sorted(list(self.tickets.keys()))
+
+    def refund(self, rid):
+        ticket = self.tickets[rid]
+        sid = ticket['shiftId']
+        A = ticket['start']
+        B = ticket['end']
+        shift = self.shifts[sid]
+        if A in shift['station']:
+            i = shift['station'].index(A)
+            if B in shift['station'][i:]:
+                j = shift['station'][i:].index(B)
+                for x in range(i, j):
+                    shift['bought'][x] -= ticket['amount']
+        del self.tickets[rid]
 
 
 if __name__ == "__main__":
