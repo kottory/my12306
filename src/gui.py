@@ -1,7 +1,7 @@
 import os
 import ctypes
 from tkinter import *
-from tkinter import ttk
+from tkinter.ttk import *
 from tkinter import messagebox
 import tkinter.font as tkFont
 from tkinter.filedialog import askopenfilename, asksaveasfilename
@@ -24,6 +24,14 @@ def on_save(f):
     return wrapper
 
 
+def on_delete(f):
+    def wrapper(self):
+        self.statusText.set("删除中...")
+        f(self)
+        self.statusText.set("删除成功!")
+    return wrapper
+
+
 def hi_dpi():
     if os.name == "nt":
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
@@ -39,7 +47,7 @@ class AskShiftIdWindow(Toplevel):
         self.text.pack()
 
         self.optionList = self.parent.info.all_id()
-        self.opt = ttk.Combobox(self, values=self.optionList)
+        self.opt = Combobox(self, values=self.optionList)
         self.opt.current(0)
         self.opt.pack()
 
@@ -64,9 +72,9 @@ class AskStationWindow(Toplevel):
         self.text.pack()
 
         optionList = self.parent.info.all_station()
-        self.startOpt = ttk.Combobox(self, values=optionList)
+        self.startOpt = Combobox(self, values=optionList)
         self.startOpt.current(0)
-        self.endOpt = ttk.Combobox(self, values=optionList)
+        self.endOpt = Combobox(self, values=optionList)
         self.endOpt.current(0)
 
         self.startOpt.pack()
@@ -84,36 +92,56 @@ class AskStationWindow(Toplevel):
 
 class AskOrderWindow(Toplevel):
     def ok(self):
-        i = 0
-        for shift, bought, total in self.sbtl:
-            i += 1
-            if i == self.var.get():
-                self.parent.boughtId = shift
-                if self.input.get().isdigit() and 0 < int(self.input.get()) + bought < total:
-                    self.parent.boughtAmount = int(self.input.get())
-                else:
-                    messagebox.showwarning('错误', '输入不合法或剩余票数不足!')
-                    self.parent.boughtAmount = 0
-                    break
+        self.parent.boughtId = self.opt.get()
+        if self.parent.boughtId and self.input.get().isdigit() and self.minval <= int(self.input.get()) <= self.restAmount[self.parent.boughtId][0]:
+            self.parent.boughtAmount = int(self.input.get())
+        else:
+            messagebox.showwarning('错误', '输入不合法或剩余票数不足!')
+            self.parent.boughtAmount = 0
 
         self.destroy()
 
     def createWidgets(self):
-        self.text = Label(self, text='请选择车次')
-        self.text.pack()
+        def opt_selected(event):
+            shift = self.opt.get()
+            amount = self.restAmount[shift]
+            self.showText.set('已选择%s, 总票数为%s, 剩余%s' %
+                              (shift, amount[1], amount[0]))
+            self.maxval = amount[0]
+            self.input.config(from_=self.minval, to=self.maxval)
+            self.input.set(0)
 
-        self.var = IntVar()
-        maxval = 0
-        i = 0
+        def verify(text, prevText):
+            if (text == '' or text.isdecimal() and self.minval <= int(text) <= self.maxval):
+                return True
+            else:
+                self.input.set(prevText)
+                print("Error!")
+                return False
+        verifyRegistered = self.register(verify)
+        self.showText = StringVar()
+        self.showText.set('请选择车次')
+        self.shiftLabel = Label(self, textvariable=self.showText)
+        self.shiftLabel.pack()
+
+        self.minval = 0
+        self.maxval = 0
+
+        self.optionList = []
+        self.restAmount = {}
         for shift, bought, total in self.sbtl:
-            i += 1
-            Radiobutton(self, text='%s 剩余%s 共%s' % (
-                shift, total - bought, total), variable=self.var, value=i).pack()
-            maxval = max(maxval, total - bought)
+            self.optionList.append(shift)
+            self.restAmount[shift] = (total - bought, total)
 
-        self.text = Label(self, text='购买张数')
-        self.text.pack()
-        self.input = Spinbox(self, from_=0, to=maxval)
+        self.opt = Combobox(self, values=self.optionList)
+        self.opt.pack()
+
+        self.ticketLabel = Label(self, text='请选择张数')
+        self.ticketLabel.pack()
+        self.input = Spinbox(self, from_=self.minval, to=self.maxval,
+                             validate='key', validatecommand=(verifyRegistered, '%P', '%s'))
+        self.input.set(0)
+        self.opt.bind('<<ComboboxSelected>>', opt_selected)
         self.input.pack()
 
         self.quitButton = Button(self, text='确定', command=self.ok)
@@ -136,7 +164,7 @@ class AskRefundWindow(Toplevel):
         self.text = Label(self, text='请选择订单号')
         self.text.pack()
 
-        self.opt = ttk.Combobox(self, values=self.parent.info.all_ticket_id())
+        self.opt = Combobox(self, values=self.parent.info.all_ticket_id())
         self.opt.current(0)
         self.opt.pack()
 
@@ -251,6 +279,7 @@ class Application(Frame):
         self.info.add_shift(infos)
         self.to_bought_info()
 
+    @on_delete
     def del_shift(self):
         self.selectedId = None
         if self.info.shifts:
@@ -259,7 +288,7 @@ class Application(Frame):
         else:
             messagebox.showwarning('错误', '车次信息为空!')
             return
-        if self.info.shifts['bought'].any():
+        if any(self.info.shifts[self.selectedId]['bought']):
             messagebox.showwarning('错误', '不能删除有订票的车次!')
         else:
             self.info.del_shift(self.selectedId)
@@ -273,12 +302,10 @@ class Application(Frame):
         if sbtl:
             popup = AskOrderWindow(self, sbtl)
             self.wait_window(popup)
-        else:
-            messagebox.showwarning('错误', '区间内无车次!')
-        if self.boughtId:
-            self.info.buy_ticket(
-                self.boughtId, self.startStation, self.endStation, self.boughtAmount)
-        self.to_bought_info()
+            if self.boughtId and self.boughtAmount > 0:
+                self.info.buy_ticket(
+                    self.boughtId, self.startStation, self.endStation, self.boughtAmount)
+            self.to_bought_info()
 
     def refund(self):
         self.to_bought_info()
@@ -330,7 +357,7 @@ class Application(Frame):
         self.scrollBar = Scrollbar(self)
         self.scrollBar.pack(side='right', fill='y')
 
-        self.boughtInfo = ttk.Treeview(
+        self.boughtInfo = Treeview(
             self, columns=['1', '2', '3', '4', '5'], show='headings', yscrollcommand=self.scrollBar.set)
         self.boughtInfo.heading('1', text="订单号")
         self.boughtInfo.heading('2', text="车次")
@@ -338,13 +365,13 @@ class Application(Frame):
         self.boughtInfo.heading('4', text="到达站")
         self.boughtInfo.heading('5', text="已购票数")
 
-        self.infoByStation = ttk.Treeview(
+        self.infoByStation = Treeview(
             self, columns=['1', '2', '3'], show='headings', yscrollcommand=self.scrollBar.set)
         self.infoByStation.heading('1', text="车次")
         self.infoByStation.heading('2', text="剩余票数")
         self.infoByStation.heading('3', text="总票数")
 
-        self.infoByShift = ttk.Treeview(
+        self.infoByShift = Treeview(
             self, columns=['1', '2', '3', '4'], show='headings', yscrollcommand=self.scrollBar.set)
         self.infoByShift.heading('1', text="车次")
         self.infoByShift.heading('2', text="车站")
@@ -357,9 +384,8 @@ class Application(Frame):
 
     def createStatusBar(self):
         self.statusText = StringVar()
-
         self.statusBar = Label(
-            self, textvariable=self.statusText, bd=1, relief=SUNKEN, anchor=W)
+            self, textvariable=self.statusText, relief=SUNKEN, anchor=W)
         self.statusBar.pack(side=BOTTOM, fill=X)
 
     def createWidgets(self):
