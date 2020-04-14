@@ -8,13 +8,6 @@ class Info:
         self.tickets = {}
         self.dataDirname = dataDirname
 
-    def shift_into_to_str(self):
-        return "%s,%s|%s|" % (
-            self.shifts["id"],
-            self.shifts["all"],
-            '|'.join(self.shifts["stations"])
-        )
-
     def str_to_shift_info(self, infoString):
         di = {}
         infoString = infoString.strip()
@@ -121,10 +114,3 @@ class Info:
                 for x in range(i, j):
                     shift['bought'][x] -= ticket['amount']
         del self.tickets[rid]
-
-
-if __name__ == "__main__":
-    info = Info('data')
-    print(info.str_to_shift_info('G1,100|北京南|济南西|南京南|上海虹桥|'))
-    # info.load()
-    # print(info.shifts)

@@ -1,5 +1,3 @@
-import os
-import ctypes
 from tkinter import *
 from tkinter.ttk import *
 from tkinter import messagebox
@@ -9,6 +7,8 @@ from tkinter.simpledialog import askstring
 
 
 def on_load(f):
+    """显示加载信息的装饰器"""
+
     def wrapper(self):
         self.statusText.set("加载中...")
         f(self)
@@ -17,6 +17,8 @@ def on_load(f):
 
 
 def on_save(f):
+    """显示保存信息的装饰器"""
+
     def wrapper(self):
         self.statusText.set("保存中...")
         f(self)
@@ -25,6 +27,8 @@ def on_save(f):
 
 
 def on_delete(f):
+    """显示删除信息的装饰器"""
+
     def wrapper(self):
         self.statusText.set("删除中...")
         f(self)
@@ -33,76 +37,145 @@ def on_delete(f):
 
 
 def hi_dpi():
+    """win32 下设置其在高 dpi 下自适应"""
+    import os
+    import ctypes
     if os.name == "nt":
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
 
 
 class AskShiftIdWindow(Toplevel):
-    def ok(self):
-        self.parent.selectedId = self.opt.get()
-        self.destroy()
+    r"""
+    Description:
+        弹出窗口, 用于询问车次, 并将获取的值传递给 parent.selectedId. 会强制在 parent 中新建该属性, 如存在将覆盖其中的值.
+
+    Args:
+        parent: 上一级界面
+
+    Attributes:
+        text (Label): 显示提示文字
+        optionList (list): 所有可供选择的车次(str)列表，
+        opt (ComboBox): 显示车次信息的下拉菜单
+        quitButton (Button): 显示确定按钮
+        parent : 上一级界面
+    """
+
+    def __init__(self, parent=None):
+        super().__init__()
+        self.parent = parent
+        self.parent.selectedId = None
+        self.resizable(0, 0)
+        self.createWidgets()
 
     def createWidgets(self):
+        """创建所有物件"""
+        def ok():
+            """将当前下拉菜单的选项传值与上一级界面的 selectedId 属性, 并关闭当前窗口"""
+            self.parent.selectedId = self.opt.get()
+            self.destroy()
+        # 创建提示文字
         self.text = Label(self, text='请选择车次')
         self.text.pack()
-
+        # 创建下拉菜单
         self.optionList = self.parent.info.all_id()
         self.opt = Combobox(self, values=self.optionList)
         self.opt.current(0)
         self.opt.pack()
-
-        self.quitButton = Button(self, text='确定', command=self.ok)
+        # 创建确定按钮
+        self.quitButton = Button(self, text='确定', command=ok)
         self.quitButton.pack()
-
-    def __init__(self, parent=None):
-        super().__init__()
-        self.parent = parent
-        self.resizable(0, 0)
-        self.createWidgets()
 
 
 class AskStationWindow(Toplevel):
-    def ok(self):
-        self.parent.startStation = self.startOpt.get()
-        self.parent.endStation = self.endOpt.get()
-        self.destroy()
+    r"""
+    Description:
+        弹出窗口, 用于询问出发站与目的站, 并将获取的值传递给 parent.startStation 与 parent.endStation. 会强制在 parent 中新建该属性, 如存在将覆盖其中的值.
 
-    def createWidgets(self):
-        self.text = Label(self, text='请选择车次')
-        self.text.pack()
+    Args:
+        parent: 上一级界面
 
-        optionList = self.parent.info.all_station()
-        self.startOpt = Combobox(self, values=optionList)
-        self.startOpt.current(0)
-        self.endOpt = Combobox(self, values=optionList)
-        self.endOpt.current(0)
-
-        self.startOpt.pack()
-        self.endOpt.pack()
-
-        self.quitButton = Button(self, text='确定', command=self.ok)
-        self.quitButton.pack()
+    Attributes:
+        text (Label): 显示提示文字
+        optionList (list): 所有可供选择的车次(str)列表，
+        startOpt (ComboBox): 显示出发站信息的下拉菜单
+        endOpt (ComboBox): 显示目的站信息的下拉菜单
+        quitButton (Button): 显示确定按钮
+        parent : 上一级界面
+    """
 
     def __init__(self, parent=None):
         super().__init__()
         self.parent = parent
+        self.parent.startStation = None
+        self.parent.endStation = None
         self.resizable(0, 0)
+        self.optionList = self.parent.info.all_station()
         self.createWidgets()
+
+    def createWidgets(self):
+        """创建所有物件"""
+        def ok():
+            """将当前下拉菜单的选项传值与上一级界面的 startStaion 与 endStation 属性, 并关闭当前窗口"""
+            self.parent.startStation = self.startOpt.get()
+            self.parent.endStation = self.endOpt.get()
+            self.destroy()
+        # 创建提示文字
+        self.text = Label(self, text='请选择车次')
+        self.text.pack()
+        # 创建始发站下拉菜单
+        self.startOpt = Combobox(self, values=self.optionList)
+        self.startOpt.current(0)
+        self.startOpt.pack()
+        # 创建目的站下拉菜单
+        self.endOpt = Combobox(self, values=self.optionList)
+        self.endOpt.current(0)
+        self.endOpt.pack()
+        # 创建确定按钮
+        self.quitButton = Button(self, text='确定', command=ok)
+        self.quitButton.pack()
 
 
 class AskOrderWindow(Toplevel):
-    def ok(self):
-        self.parent.boughtId = self.opt.get()
-        if self.parent.boughtId and self.input.get().isdigit() and self.minval <= int(self.input.get()) <= self.restAmount[self.parent.boughtId][0]:
-            self.parent.boughtAmount = int(self.input.get())
-        else:
-            messagebox.showwarning('错误', '输入不合法或剩余票数不足!')
-            self.parent.boughtAmount = 0
+    """
+    Description:
+        弹出窗口, 用于询问购票车次与购票数量, 并将值传递与 parent.boughtId 与 parent.boughtAmount. 会强制在 parent 中新建该属性, 如存在将覆盖其中的值.
 
-        self.destroy()
+    Args:
+        parent: 上级界面
+        sbtl (list): 车次信息的列表, 成员为 车次,已购数量,总数量 组成的三元组.
 
-    def createWidgets(self):
+    Attributes:
+        parent: 上级界面
+        minval (int): 所选车次的最少购票数
+        maxval (int): 所选车次的最多购票数
+        shiftLabel (Label): 显示车次信息的文字
+        showText (StringVar): shiftLabel 的内容
+        optionList (list): 所有可供选择的车次信息(str)列表
+        restAmount (dist): 车次对应的剩余票数, 内容为
+            车次(str) : 剩余票数(int)
+        opt (ComboBox):显示车次信息的下拉菜单
+        ticketLabel (Label): 提示文字
+        input (SpinBox): 输入购买的车票数量的输入框
+        quitButton (Button): 确定按钮
+    """
+
+    def __init__(self, parent=None, sbtl=None):
+        super().__init__()
+        self.parent = parent
+        self.resizable(0, 0)
+        self.optionList = []
+        self.restAmount = {}
+        for shift, bought, total in sbtl:
+            self.optionList.append(shift)
+            self.restAmount[shift] = (total - bought, total)
+        self.minval = 0
+        self.maxval = 0
+        self.createWidgets()
+
+    def CreateShiftSelection(self):
+        """创建选择车次的控件"""
         def opt_selected(event):
+            """当所选车次信息改变时, 改变购买票数的输入上下限"""
             shift = self.opt.get()
             amount = self.restAmount[shift]
             self.showText.set('已选择%s, 总票数为%s, 剩余%s' %
@@ -110,66 +183,70 @@ class AskOrderWindow(Toplevel):
             self.maxval = amount[0]
             self.input.config(from_=self.minval, to=self.maxval)
             self.input.set(0)
-
-        def verify(text, prevText):
-            if (text == '' or text.isdecimal() and self.minval <= int(text) <= self.maxval):
-                return True
-            else:
-                self.input.set(prevText)
-                print("Error!")
-                return False
-        verifyRegistered = self.register(verify)
+        # 创建提示信息
         self.showText = StringVar()
         self.showText.set('请选择车次')
         self.shiftLabel = Label(self, textvariable=self.showText)
         self.shiftLabel.pack()
-
-        self.minval = 0
-        self.maxval = 0
-
-        self.optionList = []
-        self.restAmount = {}
-        for shift, bought, total in self.sbtl:
-            self.optionList.append(shift)
-            self.restAmount[shift] = (total - bought, total)
-
+        # 创建下拉菜单
         self.opt = Combobox(self, values=self.optionList)
         self.opt.pack()
+        self.opt.bind('<<ComboboxSelected>>', opt_selected)
 
+    def CreateTicketSelection(self):
+        """创建选择购买票数的控件"""
+        @self.register
+        def verify(text, prevText):
+            """验证目前输入是否合法, 若不合法则保持之前的输入"""
+            if (text == '' or text.isdecimal() and self.minval <= int(text) <= self.maxval):
+                return True
+            else:
+                self.input.set(prevText)
+                return False
+        # 创建提示信息
         self.ticketLabel = Label(self, text='请选择张数')
         self.ticketLabel.pack()
+        # 创建输入框
         self.input = Spinbox(self, from_=self.minval, to=self.maxval,
-                             validate='key', validatecommand=(verifyRegistered, '%P', '%s'))
+                             validate='key', validatecommand=(verify, '%P', '%s'))
         self.input.set(0)
-        self.opt.bind('<<ComboboxSelected>>', opt_selected)
         self.input.pack()
 
-        self.quitButton = Button(self, text='确定', command=self.ok)
-        self.quitButton.pack()
+    def createWidgets(self):
+        """创建所有物件"""
+        def ok():
+            """将当前下拉菜单与输入框的选项传值与上一级界面的 boughtId 与 boughtAmount 属性, 并关闭当前窗口"""
+            self.parent.boughtId = self.opt.get()
+            if self.parent.boughtId:
+                if self.input.get() == '':
+                    self.parent.boughtAmount = 0
+                else:
+                    self.parent.boughtAmount = int(self.input.get())
+                self.destroy()
+            else:
+                messagebox.showwarning('错误', '请选择车次!')
 
-    def __init__(self, parent=None, sbtl=None):
-        super().__init__()
-        self.parent = parent
-        self.resizable(0, 0)
-        self.sbtl = sbtl
-        self.createWidgets()
+        self.CreateShiftSelection()
+        self.CreateTicketSelection()
+        # 创建确定按钮
+        self.quitButton = Button(self, text='确定', command=ok)
+        self.quitButton.pack()
 
 
 class AskRefundWindow(Toplevel):
-    def ok(self):
-        self.parent.refundId = self.opt.get()
-        self.destroy()
+    """
+    Description:
+        弹出窗口, 用于询问退票的 ID , 并将值传递与 parent.refundId. 会强制在 parent 中新建该属性, 如存在将覆盖其中的值.
 
-    def createWidgets(self):
-        self.text = Label(self, text='请选择订单号')
-        self.text.pack()
+    Args:
+        parent: 上级界面.
 
-        self.opt = Combobox(self, values=self.parent.info.all_ticket_id())
-        self.opt.current(0)
-        self.opt.pack()
-
-        self.quitButton = Button(self, text='确定', command=self.ok)
-        self.quitButton.pack()
+    Attribute:
+        parent: 上级界面.
+        text (Label): 提示文字.
+        opt (ComboBox): 显示订单 ID 的下拉菜单.
+        quitButton (Button): 确定按钮
+    """
 
     def __init__(self, parent=None):
         super().__init__()
@@ -177,21 +254,43 @@ class AskRefundWindow(Toplevel):
         self.resizable(0, 0)
         self.createWidgets()
 
+    def createWidgets(self):
+        """创建所有物件"""
+        def ok():
+            """将当前下拉菜单的选项传值与上一级界面的 refundId 属性, 并关闭当前窗口"""
+            self.parent.refundId = self.opt.get()
+            self.destroy()
+        # 创建提示信息
+        self.text = Label(self, text='请选择订单号')
+        self.text.pack()
+        # 创建下拉菜单
+        self.opt = Combobox(self, values=self.parent.info.all_ticket_id())
+        self.opt.current(0)
+        self.opt.pack()
+        # 创建确定按钮
+        self.quitButton = Button(self, text='确定', command=ok)
+        self.quitButton.pack()
+
 
 class Application(Frame):
-    def __init__(self, info=None, master=None):
+    def __init__(self, info=None):
         hi_dpi()
-        Frame.__init__(self, master)
+        Frame.__init__(self)
         self.pack()
         self.master.resizable(0, 0)
         self.info = info
         self.createWidgets()
+        self.selectedId = None
+        self.startStation = None
+        self.endStation = None
+        self.boughtId = None
+        self.boughtAmount = None
         self.load()
-        self.statusText.set('初始化成功!')
+        self.to_bought_info()
 
     @on_load
     def to_info_by_station(self):
-        self.startStation = self.endStation = None
+
         if self.info.shifts:
             popup = AskStationWindow(self)
             self.wait_window(popup)
@@ -218,7 +317,7 @@ class Application(Frame):
 
     @on_load
     def to_info_by_shift(self):
-        self.selectedId = None
+
         if self.info.shifts:
             popup = AskShiftIdWindow(self)
             self.wait_window(popup)
@@ -273,6 +372,7 @@ class Application(Frame):
     def load(self):
         self.info.load()
 
+    @on_load
     def add_shift(self):
         infos = askstring(
             title="输入", prompt="请输入列车信息\n形如<id>,<number>|<station1>|<station2>")
@@ -281,18 +381,16 @@ class Application(Frame):
 
     @on_delete
     def del_shift(self):
-        self.selectedId = None
         if self.info.shifts:
             popup = AskShiftIdWindow(self)
             self.wait_window(popup)
+            if any(self.info.shifts[self.selectedId]['bought']):
+                messagebox.showwarning('错误', '不能删除有订票的车次!')
+            else:
+                self.info.del_shift(self.selectedId)
+                self.to_bought_info()
         else:
             messagebox.showwarning('错误', '车次信息为空!')
-            return
-        if any(self.info.shifts[self.selectedId]['bought']):
-            messagebox.showwarning('错误', '不能删除有订票的车次!')
-        else:
-            self.info.del_shift(self.selectedId)
-            self.to_bought_info()
 
     def buy_ticket(self):
         self.to_info_by_station()
@@ -319,7 +417,6 @@ class Application(Frame):
         self.to_bought_info()
 
     def createFonts(self):
-        # 缺省字体
         self.bodyfont = tkFont.Font(size=15)
         for font in ('Noto Sans CJK SC Regular', '微软雅黑'):
             if font in tkFont.families():
@@ -380,7 +477,6 @@ class Application(Frame):
 
         self.infoTree = self.boughtInfo
         self.infoTree.pack()
-        self.to_bought_info()
 
     def createStatusBar(self):
         self.statusText = StringVar()
