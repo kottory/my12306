@@ -11,8 +11,12 @@ def on_load(f):
 
     def wrapper(self):
         self.statusText.set("加载中...")
-        f(self)
-        self.statusText.set("加载成功!")
+        ret = f(self)
+        if ret:
+            self.statusText.set("加载成功!")
+        else:
+            self.statusText.set("加载失败!")
+
     return wrapper
 
 
@@ -21,8 +25,12 @@ def on_save(f):
 
     def wrapper(self):
         self.statusText.set("保存中...")
-        f(self)
-        self.statusText.set("保存成功!")
+        ret = f(self)
+        if ret:
+            self.statusText.set("保存成功!")
+        else:
+            self.statusText.set("保存失败!")
+
     return wrapper
 
 
@@ -31,8 +39,40 @@ def on_delete(f):
 
     def wrapper(self):
         self.statusText.set("删除中...")
-        f(self)
-        self.statusText.set("删除成功!")
+        ret = f(self)
+        if ret:
+            self.statusText.set("删除成功!")
+        else:
+            self.statusText.set("删除失败!")
+
+    return wrapper
+
+
+def on_buy(f):
+    """显示购买信息的装饰器"""
+
+    def wrapper(self):
+        self.statusText.set("购买中...")
+        ret = f(self)
+        if ret:
+            self.statusText.set("购买成功!")
+        else:
+            self.statusText.set("购买失败!")
+
+    return wrapper
+
+
+def on_refund(f):
+    """显示退票信息的装饰器"""
+
+    def wrapper(self):
+        self.statusText.set("退票中...")
+        ret = f(self)
+        if ret:
+            self.statusText.set("退票成功!")
+        else:
+            self.statusText.set("退票失败!")
+
     return wrapper
 
 
@@ -251,6 +291,7 @@ class AskRefundWindow(Toplevel):
     def __init__(self, parent=None):
         super().__init__()
         self.parent = parent
+        self.parent.refundId = None
         self.resizable(0, 0)
         self.createWidgets()
 
@@ -273,6 +314,37 @@ class AskRefundWindow(Toplevel):
 
 
 class Application(Frame):
+    """
+    Description:
+        图形界面的核心, 本项目界面的入口. 可以通过 Application(info.Info).mainloop 创建并运行界面
+
+    Args:
+        info (Info): 用于维护信息的数据结构.
+
+    Attributes:
+        -------------- 信息类 ------------
+        info (Info): 用于维护所有信息
+        ------------- 返回值类 -----------
+        selectedId 用于接收弹窗的返回值, 详见 AskShiftIdWindow
+        startStation 用于接收弹窗的返回值, 详见 AskStationWindow
+        endStation 用于接收弹窗的返回值, 详见 AskStaionWindow
+        boughtId 用于接收弹窗的返回值, 详见 AskOrderWindow
+        boughtAmount 用于接收弹窗的返回值, 详见 AskOrderWindow
+        refundId 用于接收弹窗的返回值, 详见 AskRefundWindow
+        ----------- 控件类 ---------------
+        displayFont (Font): 当前显示内容的标题的字体
+        menubar (Menu): 显示菜单栏
+        displayText (StringVar): 当前显示内容的标题的内容
+        displayLabel (Label): 显示当前显示内容的标题信息
+        scrollBar (ScrollBar): 显示内容的滚动条
+        boughtInfo (TreeView): 显示订单的表格界面
+        infoByStation (TreeView): 显示以站点信息查询的表格界面
+        infoByShift (TreeView): 显示以车次信息查询的表格界面
+        infoTree (TreeView): 当前显示表格界面
+        statusText (StringVar): 状态栏内容
+        statusBar (Label): 显示状态栏
+    """
+
     def __init__(self, info=None):
         hi_dpi()
         Frame.__init__(self)
@@ -285,64 +357,66 @@ class Application(Frame):
         self.endStation = None
         self.boughtId = None
         self.boughtAmount = None
+        self.refundId = None
         self.load()
         self.to_bought_info()
 
     @on_load
     def to_info_by_station(self):
-
+        """询问始终站并转到以站次查询的界面, 若成功则返回 True"""
         if self.info.shifts:
             popup = AskStationWindow(self)
             self.wait_window(popup)
+            self.displayText.set('按站点查询')
+            self.infoTree.forget()
+            self.infoTree = self.infoByStation
+
+            children = self.infoTree.get_children()
+            for item in children:
+                self.infoTree.delete(item)
+
+            sbtl = self.info.all_way(self.startStation, self.endStation)
+            print(sbtl)
+            for shift, bought, total in sbtl:
+                self.infoTree.insert('', 'end', values=(
+                    shift, total - bought, total))
+
+            self.scrollBar.config(command=self.infoTree.yview)
+            self.infoTree.pack()
+            return True
         else:
             messagebox.showwarning('错误', '车次信息为空!')
-            return
-
-        self.displayText.set('按站点查询')
-        self.infoTree.forget()
-        self.infoTree = self.infoByStation
-
-        children = self.infoTree.get_children()
-        for item in children:
-            self.infoTree.delete(item)
-
-        sbtl = self.info.all_way(self.startStation, self.endStation)
-        print(sbtl)
-        for shift, bought, total in sbtl:
-            self.infoTree.insert('', 'end', values=(
-                shift, total - bought, total))
-
-        self.scrollBar.config(command=self.infoTree.yview)
-        self.infoTree.pack()
+            return False
 
     @on_load
     def to_info_by_shift(self):
-
+        """询问车次并转到以车次查询的界面, 若成功则返回 True"""
         if self.info.shifts:
             popup = AskShiftIdWindow(self)
             self.wait_window(popup)
+            self.displayText.set('按车次查询')
+            self.infoTree.forget()
+            self.infoTree = self.infoByShift
+
+            children = self.infoTree.get_children()
+            for item in children:
+                self.infoTree.delete(item)
+            if self.selectedId:
+                shift = self.info.shifts[self.selectedId]
+                for bought, stat in zip(shift['bought'], shift['station']):
+                    self.infoTree.insert(
+                        '', 'end', values=(shift['id'], stat, shift['all'] - bought, shift['all']))
+
+            self.scrollBar.config(command=self.infoTree.yview)
+            self.infoTree.pack()
+            return True
         else:
             messagebox.showwarning('错误', '车次信息为空!')
-            return
-
-        self.displayText.set('按车次查询')
-        self.infoTree.forget()
-        self.infoTree = self.infoByShift
-
-        children = self.infoTree.get_children()
-        for item in children:
-            self.infoTree.delete(item)
-        if self.selectedId:
-            shift = self.info.shifts[self.selectedId]
-            for bought, stat in zip(shift['bought'], shift['station']):
-                self.infoTree.insert(
-                    '', 'end', values=(shift['id'], stat, shift['all'] - bought, shift['all']))
-
-        self.scrollBar.config(command=self.infoTree.yview)
-        self.infoTree.pack()
+            return False
 
     @on_load
     def to_bought_info(self):
+        """转到订单界面, 始终返回 True"""
         self.displayText.set('我的订单')
         self.infoTree.forget()
         self.infoTree = self.boughtInfo
@@ -357,42 +431,62 @@ class Application(Frame):
 
         self.scrollBar.config(command=self.infoTree.yview)
         self.infoTree.pack()
+        return True
 
     @on_load
     def load_from_file(self):
+        """从文件加载信息字符串, 若成功则返回 True"""
         if messagebox.askokcancel("警告", "从文件加载信息将会清空目前所有的车次信息与订单信息，是否继续？"):
             file_path = askopenfilename()
             self.info.load_from_file(file_path)
+            return True
+        else:
+            return False
 
     @on_save
     def save(self):
+        """保存信息"""
         self.info.save()
+        return True
 
     @on_load
     def load(self):
+        """加载信息"""
         self.info.load()
+        return True
 
     @on_load
     def add_shift(self):
+        """弹窗询问添加信息字符串"""
         infos = askstring(
             title="输入", prompt="请输入列车信息\n形如<id>,<number>|<station1>|<station2>")
-        self.info.add_shift(infos)
-        self.to_bought_info()
+        if infos:
+            self.info.add_shift(infos)
+            self.to_bought_info()
+            return True
+        else:
+            return False
 
     @on_delete
     def del_shift(self):
+        """弹窗询问删除车次, 成功后转到订单界面, 并返回 True"""
         if self.info.shifts:
             popup = AskShiftIdWindow(self)
             self.wait_window(popup)
             if any(self.info.shifts[self.selectedId]['bought']):
                 messagebox.showwarning('错误', '不能删除有订票的车次!')
+                return False
             else:
                 self.info.del_shift(self.selectedId)
                 self.to_bought_info()
+                return True
         else:
             messagebox.showwarning('错误', '车次信息为空!')
+            return False
 
+    @on_buy
     def buy_ticket(self):
+        """弹窗询问购买车票, 成功后转到订单界面, 并返回 True"""
         self.to_info_by_station()
         self.boughtId = None
         self.boughtAmount = None
@@ -403,52 +497,66 @@ class Application(Frame):
             if self.boughtId and self.boughtAmount > 0:
                 self.info.buy_ticket(
                     self.boughtId, self.startStation, self.endStation, self.boughtAmount)
-            self.to_bought_info()
+                self.to_bought_info()
+                return True
 
-    def refund(self):
         self.to_bought_info()
-        self.refundId = None
+        return False
+
+    @on_refund
+    def refund(self):
+        """弹窗询问退票, 并转到订单界面, 并返回 True"""
+        self.to_bought_info()
         if self.info.tickets:
             popup = AskRefundWindow(self)
             self.wait_window(popup)
+            if self.refundId:
+                self.info.refund(self.refundId)
+                self.to_bought_info()
+                return True
+            else:
+                return False
         else:
             messagebox.showwarning('错误', '无订单!')
-        self.info.refund(self.refundId)
-        self.to_bought_info()
+            self.to_bought_info()
+            return False
 
     def createFonts(self):
-        self.bodyfont = tkFont.Font(size=15)
+        """创建字体"""
+        self.displayFont = tkFont.Font(size=15)
         for font in ('Noto Sans CJK SC Regular', '微软雅黑'):
             if font in tkFont.families():
-                self.bodyfont = tkFont.Font(family=font, size=15)
+                self.displayFont = tkFont.Font(family=font, size=15)
                 break
 
     def createMenu(self):
+        """创建菜单栏"""
         self.menubar = Menu(self)
         fileMenu = Menu(self.menubar, tearoff=0)
         fileMenu.add_command(label="从文件录入", command=self.load_from_file)
         fileMenu.add_command(label="添加车次", command=self.add_shift)
         fileMenu.add_command(label="删除车次", command=self.del_shift)
         fileMenu.add_command(label="保存信息", command=self.save)
+        self.menubar.add_cascade(label='文件', menu=fileMenu)
 
         infoMenu = Menu(self.menubar, tearoff=0)
         infoMenu.add_command(label="按班次显示", command=self.to_info_by_shift)
         infoMenu.add_command(label="按站点显示", command=self.to_info_by_station)
+        self.menubar.add_cascade(label='显示', menu=infoMenu)
 
         findMenu = Menu(self.menubar, tearoff=0)
         findMenu.add_command(label="查看订单", command=self.to_bought_info)
         findMenu.add_command(label="购票", command=self.buy_ticket)
         findMenu.add_command(label="退票", command=self.refund)
-
-        self.menubar.add_cascade(label='文件', menu=fileMenu)
-        self.menubar.add_cascade(label='显示', menu=infoMenu)
         self.menubar.add_cascade(label='个人中心', menu=findMenu)
+
         self.master.config(menu=self.menubar)
 
     def createTreeView(self):
+        """创建表格"""
         self.displayText = StringVar()
         self.displayLabel = Label(
-            self, textvariable=self.displayText, font=self.bodyfont)
+            self, textvariable=self.displayText, font=self.displayFont)
         self.displayLabel.pack()
 
         self.scrollBar = Scrollbar(self)
@@ -479,12 +587,14 @@ class Application(Frame):
         self.infoTree.pack()
 
     def createStatusBar(self):
+        """创建状态栏"""
         self.statusText = StringVar()
         self.statusBar = Label(
             self, textvariable=self.statusText, relief=SUNKEN, anchor=W)
         self.statusBar.pack(side=BOTTOM, fill=X)
 
     def createWidgets(self):
+        """创建所有组件"""
         self.createFonts()
         self.createMenu()
         self.createStatusBar()
