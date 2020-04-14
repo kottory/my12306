@@ -554,14 +554,15 @@ class Application(Frame):
 
     def createTreeView(self):
         """创建表格"""
+        # 创建标题
         self.displayText = StringVar()
         self.displayLabel = Label(
             self, textvariable=self.displayText, font=self.displayFont)
         self.displayLabel.pack()
-
+        # 创建滚动条
         self.scrollBar = Scrollbar(self)
         self.scrollBar.pack(side='right', fill='y')
-
+        # 创建订单界面
         self.boughtInfo = Treeview(
             self, columns=['1', '2', '3', '4', '5'], show='headings', yscrollcommand=self.scrollBar.set)
         self.boughtInfo.heading('1', text="订单号")
@@ -569,20 +570,20 @@ class Application(Frame):
         self.boughtInfo.heading('3', text="出发站")
         self.boughtInfo.heading('4', text="到达站")
         self.boughtInfo.heading('5', text="已购票数")
-
+        # 创建站点界面
         self.infoByStation = Treeview(
             self, columns=['1', '2', '3'], show='headings', yscrollcommand=self.scrollBar.set)
         self.infoByStation.heading('1', text="车次")
         self.infoByStation.heading('2', text="剩余票数")
         self.infoByStation.heading('3', text="总票数")
-
+        # 创建车次界面
         self.infoByShift = Treeview(
             self, columns=['1', '2', '3', '4'], show='headings', yscrollcommand=self.scrollBar.set)
         self.infoByShift.heading('1', text="车次")
         self.infoByShift.heading('2', text="车站")
         self.infoByShift.heading('3', text="剩余票数")
         self.infoByShift.heading('4', text="总票数")
-
+        # 设置默认显示为订单信息
         self.infoTree = self.boughtInfo
         self.infoTree.pack()
 
