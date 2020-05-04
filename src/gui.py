@@ -160,7 +160,7 @@ class AskStationWindow(Toplevel):
             self.parent.endStation = self.endOpt.get()
             self.destroy()
         # 创建提示文字
-        self.text = Label(self, text='请选择车次')
+        self.text = Label(self, text='请选择出发站与终点站')
         self.text.pack()
         # 创建始发站下拉菜单
         self.startOpt = Combobox(self, values=self.optionList)
@@ -401,7 +401,7 @@ class Application(Frame):
             children = self.infoTree.get_children()
             for item in children:
                 self.infoTree.delete(item)
-            if self.selectedId:
+            if self.selectedId and self.selectedId in self.info.shifts.keys():
                 shift = self.info.shifts[self.selectedId]
                 for bought, stat in zip(shift['bought'], shift['station']):
                     self.infoTree.insert(
