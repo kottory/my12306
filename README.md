@@ -3,7 +3,7 @@
 ![](https://img.shields.io/badge/language-python3.7-green.svg)
 ![](https://img.shields.io/badge/encoding-utf--8-yellow.svg)
 ## Preview
-![](img/example.png)
+![](img/examplepng.png)
 ## Description
 本项目为人工智能程序设计第8周实验课作业，采用 [tkinter](https://docs.python.org/3/library/tkinter.html) 标准图形库，支持在 Windows 下的高 dpi 下自适应。
 ![](img/theme.jpg)
